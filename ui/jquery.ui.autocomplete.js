@@ -208,10 +208,9 @@ $.widget( "ui.autocomplete", {
 	},
 	
 	_getValue: function( value ){
-		//find the caret
-		this.caretPos = this.element[0].selectionStart;
+		this.caretPos = $.ui.autocomplete.caret(this.element).end;
 		/*
-		 * cut the string in half at the carot, split at the separators,
+		 * cut the string in half at the caret, split at the separators,
 		 * and then concat the outter array values so that editing the
 		 * middle of a string still correctly triggers the autocomplete
 		*/
@@ -348,6 +347,34 @@ $.extend( $.ui.autocomplete, {
 		return $.grep( array, function(value) {
 			return matcher.test( value.label || value.value || value );
 		});
+	},
+	caret: function(element, begin, end) {	//Helper Function for Caret positioning taken from http://dev.jqueryui.com/browser/branches/dev/mask/ui/ui.mask.js?rev=2371
+		var input = element[0];
+		if (typeof begin == 'number') {
+			end = (typeof end == 'number') ? end : begin;
+			if (input.setSelectionRange) {
+				input.focus();
+				input.setSelectionRange(begin, end);
+			} else if (input.createTextRange) {
+				var range = input.createTextRange();
+				range.collapse(true);
+				range.moveEnd('character', end);
+				range.moveStart('character', begin);
+				range.select();
+			}
+			return element;
+		} else {
+			if (input.setSelectionRange) {
+				begin = input.selectionStart;
+				end = input.selectionEnd;
+			}
+			else if (document.selection && document.selection.createRange) {
+				var range = document.selection.createRange();
+				begin = 0 - range.duplicate().moveStart('character', -100000);
+				end = begin + range.text.length;
+			}
+			return { begin: begin, end: end };
+		}
 	}
 });
 
