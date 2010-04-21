@@ -17,7 +17,8 @@
 $.widget( "ui.autocomplete", {
 	options: {
 		minLength: 1,
-		delay: 300
+		delay: 300,
+		separator: false
 	},
 	_create: function() {
 		var self = this,
@@ -108,14 +109,14 @@ $.widget( "ui.autocomplete", {
 					if ( false !== self._trigger( "focus", null, { item: item } ) ) {
 						// use value to match what will end up in the input, if it was a key event
 						if ( /^key/.test(event.originalEvent.type) ) {
-							self.element.val( item.value );
+							self.element.val( self.options.separator ? self._insertValue(item.value) : item.value );
 						}
 					}
 				},
 				selected: function( event, ui ) {
 					var item = ui.item.data( "item.autocomplete" );
 					if ( false !== self._trigger( "select", event, { item: item } ) ) {
-						self.element.val( item.value );
+						self.element.val( self.options.separator ? self._insertValue(item.value) : item.value );
 					}
 					self.close( event );
 					// only trigger when focus was lost (click on menu)
@@ -198,7 +199,35 @@ $.widget( "ui.autocomplete", {
 			// always save the actual value, not the one passed as an argument
 			.val();
 
-		this.source( { term: value }, this.response );
+		if( this.options.separator ){
+			value = this._getValue( value );
+		}
+		if( value ){
+			this.source( { term: value }, this.response );
+		}
+	},
+	
+	_getValue: function( value ){
+		this.caretPos = this.element[0].selectionStart;
+		var begin = value.substr( 0, this.caretPos ).split( this.options.separator ),
+			end = value.substr( this.caretPos ).split( this.options.separator );
+		return begin[ begin.length-1 ] + end[0];
+	},
+	
+	_insertValue: function( value ){
+		var begin = this.term.substr( 0, this.caretPos ).split( this.options.separator ),
+			end = this.term.substr( this.caretPos ).split( this.options.separator ),
+			result = '';
+		begin.pop();
+		end.shift();
+		if(begin.length){
+			result = begin.join( this.options.separator ) + this.options.separator;
+		}
+		result += value;
+		if(end.length){		
+			result += this.options.separator + end.join( this.options.separator );
+		}
+		return result;
 	},
 
 	_response: function( content ) {
