@@ -109,14 +109,26 @@ $.widget( "ui.autocomplete", {
 					if ( false !== self._trigger( "focus", null, { item: item } ) ) {
 						// use value to match what will end up in the input, if it was a key event
 						if ( /^key/.test(event.originalEvent.type) ) {
-							self.element.val( self.options.separator ? self._insertValue(item.value) : item.value );
+							if(self.options.separator){
+								var val = self._insertValue(item.value);
+								self.element.val( val );
+								$.ui.autocomplete.caret( self.element, val.length - self.valEndLength );
+							} else {
+								self.element.val( item.value );
+							}
 						}
 					}
 				},
 				selected: function( event, ui ) {
 					var item = ui.item.data( "item.autocomplete" );
 					if ( false !== self._trigger( "select", event, { item: item } ) ) {
-						self.element.val( self.options.separator ? self._insertValue(item.value) : item.value );
+						if(self.options.separator){
+							var val = self._insertValue(item.value);
+							self.element.val( val );
+							$.ui.autocomplete.caret( self.element, val.length - self.valEndLength );
+						} else {
+							self.element.val( item.value );
+						}
 					}
 					self.close( event );
 					// only trigger when focus was lost (click on menu)
@@ -200,40 +212,48 @@ $.widget( "ui.autocomplete", {
 			.val();
 
 		if( this.options.separator ){
-			value = this._getValue( value );
+			var caretPos = $.ui.autocomplete.caret(this.element).end;
+			value = this._getValue( value, caretPos );
+			this._storeTermBits( caretPos );
 		}
 		if( value ){
 			this.source( { term: value }, this.response );
 		}
 	},
 	
-	_getValue: function( value ){
-		this.caretPos = $.ui.autocomplete.caret(this.element).end;
+	_getValue: function( value, caretPos ){
 		/*
-		 * cut the string in half at the caret, split at the separators,
+		 * Cut the string in half at the caret, split at the separators,
 		 * and then concat the outter array values so that editing the
 		 * middle of a string still correctly triggers the autocomplete
-		*/
-		var begin = value.substr( 0, this.caretPos ).split( this.options.separator ),
-			end = value.substr( this.caretPos ).split( this.options.separator );
-		return begin[ begin.length-1 ] + end[0];
+		 */
+		var begin = value.substr( 0, caretPos ).split( this.options.separator ),
+			end = value.substr( caretPos );
+		this.valEndLength = end.length;
+		
+		return begin[ begin.length-1 ] + end.split( this.options.separator )[0];
+	},
+	
+	_storeTermBits: function( caretPos ){
+		/*
+		 * Store the beginning and end of the original term so that
+		 * the values can quickly be swapped in and out in _insertValue
+		 */	
+		this.termBegin = this.term.substr( 0, caretPos ).split( this.options.separator );
+		this.termEnd = this.term.substr( caretPos ).split( this.options.separator );
+		//clean the arrays of empty entries
+		this.termBegin.pop();
+		this.termEnd.shift();
 	},
 	
 	_insertValue: function( value ){
-		var begin = this.term.substr( 0, this.caretPos ).split( this.options.separator ),
-			end = this.term.substr( this.caretPos ).split( this.options.separator ),
-			result = '';
-			
-		//clean the arrays of empty entries
-		begin.pop();
-		end.shift();
-		
-		if(begin.length){
-			result = begin.join( this.options.separator ) + this.options.separator;
+		var result = '';
+		if( this.termBegin.length ){
+			result = this.termBegin.join( this.options.separator ) + this.options.separator;
 		}
 		result += value;
-		if(end.length){		
-			result += this.options.separator + end.join( this.options.separator );
+		if( this.termEnd.length ){
+			result += this.options.separator + this.termEnd.join( this.options.separator );
 		}
 		return result;
 	},
