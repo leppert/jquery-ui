@@ -208,7 +208,13 @@ $.widget( "ui.autocomplete", {
 	},
 	
 	_getValue: function( value ){
+		//find the caret
 		this.caretPos = this.element[0].selectionStart;
+		/*
+		 * cut the string in half at the carot, split at the separators,
+		 * and then concat the outter array values so that editing the
+		 * middle of a string still correctly triggers the autocomplete
+		*/
 		var begin = value.substr( 0, this.caretPos ).split( this.options.separator ),
 			end = value.substr( this.caretPos ).split( this.options.separator );
 		return begin[ begin.length-1 ] + end[0];
@@ -218,8 +224,11 @@ $.widget( "ui.autocomplete", {
 		var begin = this.term.substr( 0, this.caretPos ).split( this.options.separator ),
 			end = this.term.substr( this.caretPos ).split( this.options.separator ),
 			result = '';
+			
+		//clean the arrays of empty entries
 		begin.pop();
 		end.shift();
+		
 		if(begin.length){
 			result = begin.join( this.options.separator ) + this.options.separator;
 		}
